@@ -78,8 +78,8 @@ def load(con: duckdb.DuckDBPyConnection, path: Path) -> int:
     con.execute(
         f"""
         CREATE OR REPLACE TABLE trades AS
-        SELECT to_timestamp(timestamp)::TIMESTAMP AS ts, block_number, transaction_hash, log_index,
-               market_id, condition_id, maker, taker, price, usd_amount, token_amount,
+        SELECT to_timestamp(timestamp) AT TIME ZONE 'UTC' AS ts, block_number, transaction_hash,
+               log_index, market_id, condition_id, maker, taker, price, usd_amount, token_amount,
                maker_direction, taker_direction, nonusdc_side, asset_id
         FROM read_parquet('{path}') ORDER BY ts, log_index
         """
