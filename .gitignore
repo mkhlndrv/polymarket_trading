@@ -33,3 +33,6 @@ __pycache__/
 
 # local working notes for the AI assistant, not a deliverable
 CLAUDE.md
+
+# personal Claude Code settings
+.claude/settings.local.json
