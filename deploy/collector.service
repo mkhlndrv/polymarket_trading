@@ -1,0 +1,19 @@
+# systemd unit for the collector on the AWS instance.
+# Install: sudo cp deploy/collector.service /etc/systemd/system/ && sudo systemctl enable --now collector
+# Secrets and settings live in /etc/collector.env (not in git): AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+# AWS_DEFAULT_REGION, COLLECTOR_S3_BUCKET, optional COLLECTOR_S3_PREFIX, COLLECTOR_CITIES, COLLECTOR_ALERT_WEBHOOK.
+[Unit]
+Description=Polymarket weather collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/polymarket_trading
+EnvironmentFile=/etc/collector.env
+ExecStart=/home/ubuntu/polymarket_trading/.venv/bin/python -m weather_edge.collector --out /home/ubuntu/collector
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
