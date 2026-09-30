@@ -15,13 +15,11 @@ from datetime import timedelta
 from pathlib import Path
 
 import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import pandas as pd  # noqa: E402
-
-from weather_edge import config  # noqa: E402
-from weather_edge.config import FIGURES, MODELS, REPORTS  # noqa: E402
+from weather_edge import config
+from weather_edge.config import FIGURES, MODELS, REPORTS
 
 SURFACE, INK, INK_2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e6e5e0"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]  # fixed order
@@ -429,6 +427,7 @@ def main(argv=None) -> int:
         "--no-params", action="store_true", help="skip the EMOS parameter snapshot (needs data/)"
     )
     args = ap.parse_args(argv)
+    matplotlib.use("Agg")  # headless in CI and Docker; notebooks importing this module keep inline
     metrics = collect()
     brier = pd.DataFrame.from_dict(metrics["market_brier_by_hours_before_midnight"], orient="index")
     fig_market_calibration(brier.rename_axis("h").reset_index())
