@@ -1,0 +1,32 @@
+# Secrets and wallet data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+keystore*/
+wallet*/
+
+# Data (kept local or in S3, not in git); data/README.md is the only committed file there
+data/*
+!data/README.md
+*.duckdb
+*.duckdb.wal
+*.parquet
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+
+
+# Notebook checkpoints
+.ipynb_checkpoints/
