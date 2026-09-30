@@ -1,13 +1,16 @@
 FROM python:3.11-slim
 
-COPY --from=ghcr.io/astral-sh/uv:0.8 /uv /usr/local/bin/uv
+# ecCodes, which decodes the GRIB forecast files, ships as the eccodeslib wheel, so the slim image
+# needs no system packages. uv pins the rest from the lock file.
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
-COPY pyproject.toml uv.lock .python-version README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 RUN uv sync --locked --no-dev
 
 COPY reports ./reports
-ENV PATH="/app/.venv/bin:$PATH" MPLBACKEND=Agg
-ENTRYPOINT ["python", "-m", "weather_edge"]
-CMD ["report"]
+COPY models ./models
+
+# the report stage needs only the committed reports; the data stages need data/ mounted
+CMD ["uv", "run", "python", "-m", "weather_edge", "report"]
