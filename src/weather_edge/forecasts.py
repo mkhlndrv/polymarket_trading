@@ -1,23 +1,13 @@
-"""Phase 5 data: point forecasts of 2 m temperature from open GRIB archives, with real availability times.
+"""2 m temperature from the open GRIB archives, with the time each file became public.
 
-Sources (licence-clean, no quota):
-  ecmwf  IFS 0.25 deg HRES open data (CC-BY 4.0), Google Cloud mirror of ECMWF's bucket, since 2023-07;
-         00/12Z runs are stream oper, 06/18Z runs stream scda until 2026-05-11 and oper from 2026-05-12
-  gfs    NOAA GFS 0.25 deg on AWS Open Data, since 2021
-  gefs_mean, gefs_spread  NOAA GEFS 0.25 deg ensemble mean and standard deviation (31 members), since 2025-01
-  nbm_tmax, nbm_tmax_spread  NOAA NBM core CONUS 2.5 km: 12-hour maximum of 2 m temperature for the
-         12Z to 00Z window (valid at the window end) and its ensemble standard deviation; runs 00, 06, 12
-         and 18Z, steps chosen per cycle (STEPS_BY_CYCLE); nearest grid point; US stations only
-  (ECMWF ENS comes only as 51 member messages, about 525 GB for the period, and is deferred)
-Each run step is one GRIB2 file with an index; only the 2 m temperature message is fetched by byte
-range, decoded with ecCodes and interpolated bilinearly to every station at once. available_time is
-the object's Last-Modified header (when the file appeared on the mirror), never the run's init time.
+Only the temperature message is fetched, by byte range from each file's index, and interpolated to
+every station at once. The availability time is the object's Last-Modified header, never the run's
+nominal init time: a 00Z ECMWF run is public around 07:30Z, and a model that used it at 06:00 would
+be cheating.
 
-Tables in data/forecasts.duckdb:
-  forecasts     station, model, init_time, available_time, valid_time, lead_h, temp_c
-  forecast_runs model, init_time, lead_h, status (ok, missing), fetched_at   (resume log)
-
-Usage: python -m weather_edge.forecasts --start 2025-01-01 --end 2026-09-29 [--models ecmwf gfs] [--cycles 0 12] [--retry-missing]
+Sources: ECMWF IFS 0.25 (Google mirror; the 06/18Z runs moved from stream scda to oper on
+2026-05-12), NOAA GFS 0.25, GEFS 0.25 mean and spread, and the NBM 12-hour daytime maximum with its
+spread on the CONUS grid. Steps logged as missing are skipped on rerun unless --retry-missing.
 """
 
 from __future__ import annotations
@@ -36,6 +26,7 @@ import numpy as np
 import pandas as pd
 import requests
 
+from weather_edge import config
 from weather_edge.collector import FIXED_COORDS, station_coords
 
 SOURCES = {
@@ -339,8 +330,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/forecasts.duckdb")
-    ap.add_argument("--markets-db", default="data/research.duckdb")
+    ap.add_argument("--db", default=str(config.FORECASTS_DB))
+    ap.add_argument("--markets-db", default=str(config.RESEARCH_DB))
     ap.add_argument("--start", default="2025-01-01")
     ap.add_argument("--end", default=(date.today() - timedelta(days=1)).isoformat())
     ap.add_argument("--models", nargs="+", default=["ecmwf", "gfs"], choices=list(SOURCES))

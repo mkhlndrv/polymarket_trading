@@ -1,7 +1,7 @@
 [project]
 name = "weather-edge"
 version = "1.0.0"
-description = "Is there a tradeable edge in Polymarket's daily temperature markets? Data pipelines, a calibrated forecast model, backtests and a live paper trader."
+description = "Is there a tradeable edge in Polymarket's daily temperature markets? A calibrated forecast model scored against the market, backtested on the trade tape, and held out once."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -32,7 +32,9 @@ packages = ["src/weather_edge"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-extend-exclude = ["notebooks"]  # exploration cells are compact by design; the package and tests are linted
+# The notebooks are executed documents. Reformatting a cell would leave its stored output describing
+# source that no longer exists, and import order in a notebook that runs top to bottom is not a defect.
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B", "UP"]

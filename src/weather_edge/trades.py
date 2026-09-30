@@ -1,13 +1,9 @@
-"""Phase 1 data: trades of the Phase 0 temperature markets from SII-WANGZJ/Polymarket_data.
+"""On-chain fills for the inventory markets, from the SII-WANGZJ/Polymarket_data dataset.
 
-Streams trades.parquet from Hugging Face one row group at a time, keeps rows whose market_id is
-in the DuckDB markets table, writes them to --out and loads the DuckDB table trades. The dataset
-holds fills from 2022-11 to 2026-07-20 (checked 2026-09-29); later fills need another source.
-
-Known-answer check at the end: per closed market, the sum of fill sizes must match Gamma's volume
-(Gamma volume is the number of shares filled, verified on the data-api for market 1427385).
-
-Usage: python -m weather_edge.trades [--since 2025-01-20]
+The dataset is 36 GB, so it is streamed one row group at a time and only rows whose market is in the
+inventory are kept. The check at the end is what makes the fills usable as a fill model later: per
+closed market, the sum of fill sizes has to match Gamma's volume, which is a share count and not a
+dollar amount.
 """
 
 from __future__ import annotations
@@ -22,6 +18,8 @@ import duckdb
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+
+from weather_edge import config
 
 HF_PATH = "datasets/SII-WANGZJ/Polymarket_data/trades.parquet"
 COLS = [
@@ -112,8 +110,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--out", default="data/trades.parquet")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--out", default=str(config.TRADES))
     ap.add_argument(
         "--since", default="2025-01-20", help="skip row groups that end before this UTC date"
     )

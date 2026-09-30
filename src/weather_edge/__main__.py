@@ -1,8 +1,10 @@
-"""Pipeline entry point: python -m weather_edge <stage> [args].
+"""python -m weather_edge <stage> [args]
 
-Stages in pipeline order: inventory prices trades checks truth forecasts labels pilot model
-backtest timing report; live tools: collector paper. Each stage forwards its arguments to the
-module's own command line (python -m weather_edge <stage> --help).
+    inventory prices trades checks truth forecasts labels pilot model backtest timing report
+    collector paper
+
+Each stage is a module with its own command line; arguments after the stage name go to it. The
+research stages read and write data/ and reports/; `report` needs only the committed reports.
 """
 
 from __future__ import annotations

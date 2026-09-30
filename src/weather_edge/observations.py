@@ -1,17 +1,12 @@
-"""Phase 3: rebuild every resolved market's high from station observations and compare.
+"""The ground truth: what a market actually resolved on, rebuilt from station observations.
 
-Observations come from the Iowa Environmental Mesonet ASOS/METAR archive (routine and SPECI
-reports), one CSV per station and year under data/iem, loaded into the DuckDB table observations.
-For every resolved event the local clock day (station time zone) is rebuilt under candidate
-displayed-value transforms and compared with the bucket Polymarket resolved:
-  whole    max over reports of round_half_up(F) from the whole-degree METAR group (C markets: whole C)
-  tenths   the same from the T group tenths when present (US ASOS), else the whole group
-  routine  as whole, but routine reports only (report minutes with at least a quarter of the station's busiest minute)
-  tenths_routine  as tenths, routine reports only (the NOAA hourly table for US stations)
-Hong Kong is compared with the Observatory's published daily maximum (one decimal).
-Outputs: reports/phase3_ground_truth.md, and the tables observations and truth in the research DB.
+A market resolves on the highest value displayed on a web page for a named station over the local
+clock day, after unit conversion and rounding. That is not the official daily maximum. The candidate
+transforms below are compared against every resolved event, and the one that matches is the label
+definition used everywhere else: T-group tenths rounded half up for Fahrenheit markets, the whole
+METAR degree for Celsius markets, the Observatory's floored daily maximum for Hong Kong.
 
-Usage: python -m weather_edge.observations [--skip-fetch] [--years 2025 2026]
+Observations come from the Iowa Environmental Mesonet archive, one CSV per station and year.
 """
 
 from __future__ import annotations
@@ -29,6 +24,7 @@ import duckdb
 import pandas as pd
 import requests
 
+from weather_edge import config
 from weather_edge.market_checks import STATION_TZ
 
 IEM_URL = "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py"
@@ -310,11 +306,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--iem-dir", default="data/iem")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--iem-dir", default=str(config.IEM))
     ap.add_argument("--years", type=int, nargs="+", default=[2025, 2026])
     ap.add_argument("--skip-fetch", action="store_true", help="use the CSVs already in --iem-dir")
-    ap.add_argument("--report", default="reports/phase3_ground_truth.md")
+    ap.add_argument("--report", default=str(config.REPORTS / "phase3_ground_truth.md"))
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     con = duckdb.connect(a.db)

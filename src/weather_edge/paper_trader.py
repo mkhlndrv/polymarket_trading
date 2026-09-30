@@ -1,28 +1,10 @@
-"""Phase 9 paper trader: the two-days-out EMOS strategy against live books. No real orders.
+"""Paper trading of the two-days-out strategy against live books. No real orders.
 
-Loop tasks (seconds): markets 600, labels 3600, forecasts 1800, decide 60, fills 120, resolve 3600,
-report 3600, flush 900. State lives in --out (default data/paper):
-  paper.duckdb      observations and daily_truth for the traded stations (same definitions as Phase 3
-                    and phase5_labels), seeded once with --init-from data/research.duckdb
-  orders.parquet    every paper order with its fills per rule and its outcome
-  <table>/<date>/*.parquet and S3 via collector.Store: paper_orders snapshots, books seen at decisions
-Forecasts come from the forecasts DB (--forecasts, seeded by copying data/forecasts.duckdb); the
-newest ECMWF, GFS and GEFS runs are fetched every cycle with forecasts_open (resumable).
-
-Decision: at DECISION_HOUR local for day D = local today + 2, the calibrated t EMOS at lead 3
-(phase5_model.walk_forward on the trailing window, labels known at the decision only) gives bucket
-probabilities. With the live CLOB book (mid of best bid and ask):
-  sell YES (buy NO) at max(mid + 1c, p_model + EDGE) when mid - p_model >= EDGE
-  buy YES at min(mid - 1c, p_model - EDGE) when p_model - mid >= EDGE
-Orders are post-only: a price that would cross the book moves one tick inside it or is dropped.
-SHARES per order, LIFE_H hours. Fills are inferred, never assumed:
-  touch    taker prints at or through the price (data-api trades since placement), min(size, volume)
-  through  prints strictly beyond the price (the level was cleared)
-  book     the book moved through the price (best bid at or above an ask, best ask at or below a bid)
-PnL per rule after resolution; maker fee zero; rebates not counted.
-
-Usage: python -m weather_edge.paper_trader --init-from data/research.duckdb   (once, then)
-       python -m weather_edge.paper_trader [--once] [--stations EGLC KLGA] [--out data/paper]
+At noon local, two days before each market day, the model is fitted on the trailing window and
+post-only paper orders are placed where it disagrees with the book by 10c or more. Fills are inferred
+from taker prints and from the book crossing the price, and PnL is computed per fill rule after
+resolution. The point of running it is the one thing the backtest cannot measure: adverse selection
+against a live book.
 """
 
 from __future__ import annotations
@@ -44,6 +26,7 @@ import requests
 import weather_edge.forecasts as fo
 import weather_edge.markets as p0
 import weather_edge.model as p5
+from weather_edge import config
 from weather_edge.collector import (
     CLOB_BOOKS,
     FIXED_COORDS,
@@ -384,7 +367,7 @@ class PaperTrader:
         tasks = fo.plan(
             self.fcur, MODELS, [0, 6, 12, 18], today - timedelta(days=2), today, 72, 3, True
         )
-        # only runs past their usual publication time (PLAN.md section 12: ECMWF 6.5 to 7.6 h after
+        # only runs past their usual publication time (research log section 12: ECMWF 6.5 to 7.6 h after
         # init, GFS and GEFS about 4 h); earlier requests would be logged as missing. Missing steps
         # of the last days are retried every cycle (retry_missing).
         tasks = [x for x in tasks if x[1] + timedelta(hours=PUBLISH_H[x[0]]) <= now_utc()]
@@ -584,8 +567,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--out", default="data/paper")
-    ap.add_argument("--forecasts", default="data/forecasts.duckdb")
+    ap.add_argument("--out", default=str(config.PAPER))
+    ap.add_argument("--forecasts", default=str(config.FORECASTS_DB))
     ap.add_argument("--stations", nargs="+", default=["EGLC", "KLGA"])
     ap.add_argument("--init-from", help="research DuckDB to seed observations and labels from")
     ap.add_argument("--once", action="store_true")

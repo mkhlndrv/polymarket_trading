@@ -1,12 +1,9 @@
-"""Phase 1 data: CLOB price history for every bucket market of the Phase 0 inventory.
+"""Minute-level price history for every bucket market, from the CLOB.
 
-GET clob.polymarket.com/prices-history for each YES token at --fidelity minutes between the
-market's creation and its close (or now for open markets). Old markets return nothing without an
-explicit window (checked 2026-09-29). Rows go to the table prices_history in its own DuckDB file (a
-snapshot of the markets table is copied in on first run); markets already stored are skipped,
-so the script can be rerun after an interruption.
-
-Usage: python -m weather_edge.prices [--fidelity 5] [--limit N]
+Old markets return nothing without an explicit time window, and a window longer than a few days is
+refused, so each market is fetched in bounded windows between its creation and its close. Rows go to
+their own DuckDB file so the research database stays free for writers; markets already stored are
+skipped, which makes an interrupted run resumable.
 """
 
 from __future__ import annotations
@@ -21,6 +18,8 @@ from datetime import UTC, datetime, timedelta
 import duckdb
 import pandas as pd
 import requests
+
+from weather_edge import config
 
 CLOB_URL = "https://clob.polymarket.com/prices-history"
 DDL = "CREATE TABLE IF NOT EXISTS prices_history (market_id VARCHAR, ts TIMESTAMP, price DOUBLE)"
@@ -115,9 +114,9 @@ def main(argv=None):
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument(
-        "--db", default="data/prices.duckdb", help="own file: the research DB stays free"
+        "--db", default=str(config.PRICES_DB), help="own file: the research DB stays free"
     )
-    ap.add_argument("--markets-db", default="data/research.duckdb")
+    ap.add_argument("--markets-db", default=str(config.RESEARCH_DB))
     ap.add_argument("--fidelity", type=int, default=5, help="minutes between points")
     ap.add_argument("--pause", type=float, default=0.1, help="seconds between requests")
     ap.add_argument("--limit", type=int, help="fetch at most this many markets (for a trial run)")

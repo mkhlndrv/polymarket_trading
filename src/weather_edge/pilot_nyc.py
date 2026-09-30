@@ -1,23 +1,8 @@
-"""Phase 4: the full chain for one city (NYC, KLGA): forecasts, labels, baseline models, market
-comparison and a maker-only backtest skeleton. Built to flush out pipeline bugs before generalizing.
+"""The first end-to-end chain, on one city, built to find pipeline bugs before generalising.
 
-Forecasts: Open-Meteo Previous Runs API, hourly 2 m temperature at fixed lead offsets. Per its
-documentation, temperature_2m_previous_dayK is the value predicted K x 24 hours before the valid
-time. Decision time for lead K is 12:00 local on day D - (K - 1); every hour of day D used at that
-decision was predicted at least 11 hours earlier (plus at most 8 hours of publication delay, which is
-asserted). Fresher runs exist by then, so the model is understated, never leaked.
-
-Labels: the rebuilt displayed high (T-group tenths transform, table truth) and the resolved bucket.
-Models (walk-forward, trailing windows only): climatology (last 30 days of labels), raw multi-model
-(mean and spread of the models' daily maxima), EMOS-lite (linear fit of the label on the model mean
-over the last 60 days, residual spread). Bucket probabilities integrate a normal over half-integers.
-Holdout: days from 2026-08-01 are excluded from everything here (PLAN.md section 8).
-Backtest: maker-only, 5 shares (minimum order), bid 1c under the market price when the model's
-probability exceeds the market's by the edge, fill only if the later price touched the bid, and a
-50% fill haircut when the bucket won (fills are likelier when the model is wrong). No fees for makers,
-rebates ignored.
-
-Usage: python -m weather_edge.pilot_nyc [--skip-fetch]
+It kept its own feature code (Open-Meteo previous runs, then the open archives) and a simpler
+least-squares EMOS. Two things from it are still used everywhere: the bucket probability with
+half-integer edges, and the day-level bootstrap for the market comparison.
 """
 
 from __future__ import annotations
@@ -36,6 +21,7 @@ import numpy as np
 import pandas as pd
 import requests
 
+from weather_edge import config
 from weather_edge.market_checks import STATION_TZ
 from weather_edge.observations import c_to_f
 
@@ -388,8 +374,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--prices", default="data/prices.duckdb")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--prices", default=str(config.PRICES_DB))
     ap.add_argument("--start", default="2025-01-01")
     ap.add_argument("--skip-fetch", action="store_true")
     ap.add_argument(
@@ -398,8 +384,8 @@ def main(argv=None):
         default="open",
         help="open: ECMWF and GFS archives in --forecasts-db; prev: Open-Meteo previous runs",
     )
-    ap.add_argument("--forecasts-db", default="data/forecasts.duckdb")
-    ap.add_argument("--report", default="reports/phase4_nyc.md")
+    ap.add_argument("--forecasts-db", default=str(config.FORECASTS_DB))
+    ap.add_argument("--report", default=str(config.REPORTS / "phase4_nyc.md"))
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     tz = STATION_TZ[STATION]

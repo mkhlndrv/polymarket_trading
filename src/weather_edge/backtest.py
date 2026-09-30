@@ -1,18 +1,10 @@
-"""Phase 7: backtest of the two-days-out EMOS signal with fills taken from the trade tape.
+"""Maker orders on the two-days-out signal, with fills read off the trade tape.
 
-Signal: phase5_model EMOS at lead 3 (decision at --decision-hours local, two days before the day).
-Orders (maker only, 5 shares, resting LIFE_H hours), only on buckets with a market price at the decision:
-  buy YES at min(last price - 1c, p_model - EDGE) when p_model - last price >= EDGE
-  buy NO  at min(1 - last price - 1c, 1 - p_model - EDGE) when last price - p_model >= EDGE
-Fills from the dataset fills (table trades, complete through 2026-04, about 80% coverage after):
-  touch    a taker print at or through the order price in the window fills min(size, printed volume)
-  through  only prints strictly beyond the price count (the whole level was cleared, so a resting
-           order there was filled whatever its queue position)
-  *_haircut  the same with winning fills halved (fills are more likely when the model is wrong)
-Maker fee zero, rebates ignored. PnL per share = outcome - price for YES, (1 - outcome) - price for NO.
-Holdout from 2026-08-01 excluded (the tape ends 2026-07-20 anyway).
-
-Usage: python -m weather_edge.backtest --stations KLGA --decision-hours 6 12
+At the decision the model bids where it is at least 10c away from the last price, on either side,
+five shares, resting 24 hours. A fill is never assumed: a taker print at or through the price is a
+touch fill, a print strictly beyond it is a through fill (the level was cleared, so a resting order
+there was filled whatever its queue position), and the haircut variants halve the winning fills
+because fills are more likely when the model is wrong. Maker fee is zero, rebates are ignored.
 """
 
 from __future__ import annotations
@@ -26,6 +18,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from weather_edge import config
 from weather_edge.model import md, run_station
 from weather_edge.pilot_nyc import bootstrap_ci
 
@@ -175,12 +168,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--prices", default="data/prices.duckdb")
-    ap.add_argument("--forecasts", default="data/forecasts.duckdb")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--prices", default=str(config.PRICES_DB))
+    ap.add_argument("--forecasts", default=str(config.FORECASTS_DB))
     ap.add_argument("--stations", nargs="+", default=["KLGA"])
     ap.add_argument("--decision-hours", type=int, nargs="+", default=[6, 12])
-    ap.add_argument("--report", default="reports/phase7_backtest.md")
+    ap.add_argument("--report", default=str(config.REPORTS / "phase7_backtest.md"))
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     con = duckdb.connect(a.db, read_only=True)

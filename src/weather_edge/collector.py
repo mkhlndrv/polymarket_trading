@@ -1,17 +1,9 @@
-"""Phase 2 collector: order books, rules, observations and forecasts for live temperature markets.
+"""Live snapshots of the order books, rules, observations and forecasts, for later analysis.
 
-Runs forever (or --once). Rows are buffered per table and flushed to Parquet files under --out
-(data/collector/<table>/<YYYY-MM-DD>/<HHMMSS>.parquet); each written file is uploaded to S3 when
-COLLECTOR_S3_BUCKET is set (boto3 reads credentials from the environment). Tables:
-  markets_live   active bucket markets per markets cycle (station, date, tokens, rules hash)
-  rules_history  rules text the first time a market is seen and whenever its hash changes
-  books          CLOB order book of each YES token, stored when its hash changed (full depth)
-  observations   METAR reports from aviationweather.gov with receipt time, HKO 1-minute temperature
-  forecasts      Open-Meteo hourly 2 m temperature per model and station; available_time = fetch time
-Point in time: every row carries fetched_at in UTC. Nothing is backfilled. A heartbeat file is
-touched every loop; three consecutive failures of one task post to COLLECTOR_ALERT_WEBHOOK if set.
-
-Usage: python -m weather_edge.collector [--once] [--out data/collector]
+Runs forever. Every row carries the time it was fetched, nothing is backfilled, and each table is
+flushed to Parquet files (and to S3 when a bucket is configured). A heartbeat file is touched every
+loop and three consecutive failures of one task post to a webhook, which is what an unattended
+process on a small instance needs.
 """
 
 from __future__ import annotations
@@ -31,6 +23,7 @@ import pandas as pd
 import requests
 
 import weather_edge.markets as p0
+from weather_edge import config
 
 CLOB_BOOKS = "https://clob.polymarket.com/books"
 METAR_URL = "https://aviationweather.gov/api/data/metar"
@@ -441,7 +434,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--out", default=os.environ.get("COLLECTOR_DIR", "data/collector"))
+    ap.add_argument("--out", default=os.environ.get("COLLECTOR_DIR", str(config.COLLECTOR)))
     ap.add_argument("--once", action="store_true", help="run every task once, flush and exit")
     ap.add_argument(
         "--cities",

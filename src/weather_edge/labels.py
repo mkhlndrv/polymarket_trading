@@ -1,11 +1,8 @@
-"""Phase 5 labels: the daily displayed high for every station and local day, market day or not.
+"""The target: the highest displayed value per station and local day, market day or not.
 
-From the IEM observations table (Phase 3): per station and local clock day, the maximum over reports
-of the T-group tenths when present, else the whole-degree METAR value, in degrees C. Models train on
-this continuous target in C and are converted to each market's display unit at scoring time.
-Writes the table daily_truth (station, day, max_c, n_obs, t_max_local) in the research DB.
-
-Usage: python -m weather_edge.labels
+The maximum over a day's reports of the T-group tenths when present, else the whole METAR degree, in
+Celsius. Models train on this continuous value and convert to the market's unit and rounding only
+when scoring, which keeps one label definition for Fahrenheit and Celsius cities.
 """
 
 from __future__ import annotations
@@ -15,6 +12,7 @@ import sys
 import duckdb
 import pandas as pd
 
+from weather_edge import config
 from weather_edge.market_checks import STATION_TZ
 
 
@@ -38,7 +36,7 @@ def build_daily_truth(con: duckdb.DuckDBPyConnection) -> int:
 
 
 def main(argv=None):
-    con = duckdb.connect("data/research.duckdb")
+    con = duckdb.connect(str(config.RESEARCH_DB))
     n = build_daily_truth(con)
     chk = (
         con.execute(

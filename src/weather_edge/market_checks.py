@@ -1,13 +1,8 @@
-"""Phase 1: market-side checks on the Phase 0 inventory (tests T1 to T5 in PLAN.md section 9).
+"""Market-side checks before any modelling: calibration by horizon, taker losses, price sums.
 
-Inputs: data/research.duckdb (markets, trades) and data/prices.duckdb (prices_history).
-Output: one report, reports/phase1_market_checks.md.
-
-Point in time: the price at horizon h is the last CLOB point at or before local midnight of the
-event day minus h hours (local midnight closes the observation window). Outcomes come from the
-resolved bucket. Maker and taker profit is gross of fees (the dataset has no fee columns).
-
-Usage: python -m weather_edge.market_checks [--min-year-days 0]
+The price at horizon h is the last CLOB point at or before local midnight of the event day minus
+h hours, because local midnight is when the observation window closes. Profit is gross of fees; the
+dataset carries no fee column.
 """
 
 from __future__ import annotations
@@ -19,6 +14,8 @@ from pathlib import Path
 
 import duckdb
 import pandas as pd
+
+from weather_edge import config
 
 HORIZONS = [30, 24, 18, 12, 6, 3, 1]  # hours before local midnight that ends the event day
 BANDS = [0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98, 1.0001]
@@ -301,7 +298,7 @@ def write_report(path: Path, cov, t1, t2, t3, t4, t5) -> None:
     parts = [
         "# Phase 1: market-side checks",
         "",
-        "Tests T1 to T5 of PLAN.md section 9. Prices are CLOB history sampled at h hours before the "
+        "Tests T1 to T5 of the research log. Prices are CLOB history sampled at h hours before the "
         "local midnight that ends the event day (as-of, never after). Outcome is the resolved bucket. "
         "Profit figures are gross of fees.",
         "",
@@ -368,9 +365,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--research", default="data/research.duckdb")
-    ap.add_argument("--prices", default="data/prices.duckdb")
-    ap.add_argument("--report", default="reports/phase1_market_checks.md")
+    ap.add_argument("--research", default=str(config.RESEARCH_DB))
+    ap.add_argument("--prices", default=str(config.PRICES_DB))
+    ap.add_argument("--report", default=str(config.REPORTS / "phase1_market_checks.md"))
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     con = connect(a.research, a.prices)

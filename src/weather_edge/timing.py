@@ -1,15 +1,9 @@
-"""Phase 8 timing study (T19, H17): does the market lag model releases?
+"""Does the market lag the model runs? An event study around each run's publication time.
 
-For every London and NYC market day before the holdout and every ECMWF and GFS run that covers the
-local day (at least 7 three-hourly steps inside it), the run's publication time is the Last-Modified
-of its last in-day step. Model move = the run's daily maximum minus the previous run's of the same
-model, in the market's unit. Market move = change of the market-implied expected high (sum of price x
-bucket centre over sum of price, as-of prices) from one hour before publication to d minutes after,
-for d in DELTAS; -30 is a control window before publication. Per station, model, horizon and d:
-regression slope of market move on model move, correlation, and the mean absolute market move when
-the model moved by at least one unit.
-
-Usage: python -m weather_edge.timing [--stations EGLC KLGA] [--report reports/phase8_timing.md]
+For every run covering a market day, the run's change in its daily maximum against the previous run
+is paired with the change of the market-implied expected high from an hour before publication to
+minutes after. The slope of one on the other, by minutes after publication, is the pass-through; a
+window before publication is the control.
 """
 
 from __future__ import annotations
@@ -22,6 +16,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from weather_edge import config
 from weather_edge.market_checks import STATION_TZ
 from weather_edge.model import HOLDOUT_START, md
 
@@ -134,11 +129,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--prices", default="data/prices.duckdb")
-    ap.add_argument("--forecasts", default="data/forecasts.duckdb")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--prices", default=str(config.PRICES_DB))
+    ap.add_argument("--forecasts", default=str(config.FORECASTS_DB))
     ap.add_argument("--stations", nargs="+", default=["EGLC", "KLGA"])
-    ap.add_argument("--report", default="reports/phase8_timing.md")
+    ap.add_argument("--report", default=str(config.REPORTS / "phase8_timing.md"))
     a = ap.parse_args(argv)
     con = duckdb.connect(a.db, read_only=True)
     con.execute("SET enable_progress_bar=false")

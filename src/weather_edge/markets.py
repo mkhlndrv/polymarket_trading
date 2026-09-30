@@ -1,16 +1,11 @@
-"""Phase 0: inventory of Polymarket daily temperature markets.
+"""The market inventory: every daily temperature market Polymarket has listed, with its rules parsed.
 
-Fetches every "Highest temperature in <city> on <date>?" event from the Gamma API,
-parses station, unit, resolution source and buckets from each bucket market's rules
-text, stores rows in DuckDB (tables markets, rules_history) and writes one report with
-the per-city, per-month history table grouped by resolution source.
+Everything downstream depends on reading the rules text correctly. The resolution source, the
+weather station and the unit changed over time and differ by city, and the Gamma fields that claim
+to hold them lag behind the text, so the text is parsed and the fields are only a fallback. Every
+fetched event is also dumped as JSONL so a run can be reprocessed offline with --from-raw.
 
-Every fetched event is also dumped as JSONL under --raw so a run can be reprocessed
-offline with --from-raw (no network, same result).
-
-Usage:
-  python -m weather_edge.markets
-  python -m weather_edge.markets --from-raw data/raw/gamma_events_20260929T200000Z.jsonl
+Writes the tables markets and rules_history and the inventory report.
 """
 
 from __future__ import annotations
@@ -28,6 +23,8 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 import requests
+
+from weather_edge import config
 
 GAMMA_URL = "https://gamma-api.polymarket.com"
 TITLE_RE = re.compile(r"^\s*highest temperature in (?P<city>.+?) on (?P<when>.+?)\??\s*$", re.I)
@@ -698,9 +695,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--raw", default="data/raw", help="directory for raw Gamma event dumps")
-    ap.add_argument("--report", default="reports/phase0_inventory.md")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--raw", default=str(config.RAW), help="directory for raw Gamma event dumps")
+    ap.add_argument("--report", default=str(config.REPORTS / "phase0_inventory.md"))
     ap.add_argument("--from-raw", help="reprocess a raw JSONL dump instead of fetching")
     ap.add_argument("--min-days", type=int, default=90, help="event-days needed to pass the gate")
     a = ap.parse_args(argv)

@@ -1,30 +1,18 @@
-"""Phase 5: EMOS per station and lead, fit by CRPS, scored against the market.
+"""The model: EMOS fit by CRPS per station and lead, scored against the market point in time.
 
-Features per station, day and lead K at the decision time (default 12:00 local on day D - (K - 1)):
-for each source in ecmwf, gfs, gefs_mean, gefs_spread, nbm_tmax, nbm_tmax_spread the latest run all of
-whose steps inside the local day were public by the decision; the feature is the maximum over those
-steps (for a spread, its value at the step of its mean's maximum; NBM has one 12-hour daytime maximum
-per run). Everything is in degrees C.
-Label: daily_truth.max_c, every station-day, market or not (weather_edge/labels.py).
-Models, walk-forward with trailing windows only:
-  clim  N(mean, sd) of the last 30 labels
-  raw   N(mean of the deterministic maxima, sd across sources with a 2 C floor)
-  emos  y ~ t_nu(a0 + a.x, scale^2 = exp(b0) + exp(b1) * spread^2), nu = 2 + exp(c), all fit by minimizing
-        the mean CRPS (closed form for the t) over the last 90 days; x = available maxima (ecmwf, gfs,
-        gefs_mean, nbm_tmax; one spread term per ensemble). The scale is then multiplied by the root mean square of the last 90 out-of-sample
-        standardized errors known at the decision (the in-sample fit is overconfident: 82% coverage
-        of the nominal 90% interval without this step; the t alone does not fix it, nu runs to its bound).
-  obs   same-day only (lead 1): y = max(R, Z). R is the running displayed maximum from METARs observed
-        at least OBS_DELAY_MIN minutes before the decision, Z ~ N(a0 + a.rest + c * last_obs, exp(b0)^2)
-        where rest is each source's forecast maximum over the steps after the decision; fit by the
-        left-censored Gaussian likelihood over the last 90 days (days whose maximum was already in by
-        the decision are censored at R).
-Scores: CRPS and MAE on all days; PIT histogram; on market days, Brier and log loss vs the market at
-the decision time, and the market-minus-model Brier on disagreement buckets with a day bootstrap.
-Bucket probabilities integrate the predictive distribution over half-integer edges in the market's unit.
-Holdout from 2026-08-01 excluded.
+Features at a decision time are the latest run of each source whose steps inside the local day were
+all public by then; the feature is the run's maximum over those steps. The predictive distribution
+is a Student t whose scale is a linear function of the ensemble spreads, fit by minimising the CRPS
+over a trailing window, then rescaled by the root mean square of the last out-of-sample errors.
+Without that last step the nominal 90% interval covered 82% of days.
 
-Usage: python -m weather_edge.model --stations KLGA [--decision-hours 6 8 10 12] [--leads 3] [--holdout]
+The same-day variant conditions on the running maximum and the last METAR: the final high is
+max(running max, Z) with Z from a censored regression, which is what a resting observation does to
+the distribution.
+
+Scores: CRPS and PIT on every day; Brier and log loss against the as-of market price on resolved
+buckets, and the market-minus-model Brier on the buckets where the two disagree by 10c or more,
+with a day bootstrap. --holdout scores the untouched period once.
 """
 
 from __future__ import annotations
@@ -44,6 +32,8 @@ from scipy.special import beta as beta_fn
 from scipy.stats import norm
 from scipy.stats import t as t_dist
 
+from weather_edge import config
+from weather_edge.config import HOLDOUT_START
 from weather_edge.market_checks import STATION_TZ
 from weather_edge.pilot_nyc import bootstrap_ci
 
@@ -54,7 +44,6 @@ REST = [f"{c}_rest" for c in DET]
 LEADS = [1, 2, 3]
 MODELS = ("clim", "raw", "emos", "obs")
 OBS_DELAY_MIN = 5  # a METAR counts as reported this many minutes after its observation time
-HOLDOUT_START = date(2026, 8, 1)
 log = logging.getLogger("phase5")
 
 
@@ -529,14 +518,14 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--db", default="data/research.duckdb")
-    ap.add_argument("--prices", default="data/prices.duckdb")
-    ap.add_argument("--forecasts", default="data/forecasts.duckdb")
+    ap.add_argument("--db", default=str(config.RESEARCH_DB))
+    ap.add_argument("--prices", default=str(config.PRICES_DB))
+    ap.add_argument("--forecasts", default=str(config.FORECASTS_DB))
     ap.add_argument("--stations", nargs="+", default=["KLGA"])
     ap.add_argument("--decision-hours", type=int, nargs="+", default=[12])
     ap.add_argument("--leads", type=int, nargs="+", default=LEADS)
     ap.add_argument("--holdout", action="store_true", help="one-shot scoring on the holdout")
-    ap.add_argument("--report", default="reports/phase5_emos.md")
+    ap.add_argument("--report", default=str(config.REPORTS / "phase5_emos.md"))
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     con = duckdb.connect(a.db, read_only=True)
