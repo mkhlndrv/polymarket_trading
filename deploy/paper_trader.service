@@ -1,0 +1,22 @@
+# systemd unit for the Phase 9 paper trader on the AWS instance (no real orders).
+# Install: sudo cp deploy/paper_trader.service /etc/systemd/system/ && sudo systemctl enable --now paper_trader
+# Before the first start, on the instance:
+#   copy data/forecasts.duckdb from the research machine to /home/ubuntu/forecasts.duckdb (history the model trains on)
+#   python -m weather_edge.paper_trader --out /home/ubuntu/paper --init-from <copy of data/research.duckdb>   (seeds observations and labels)
+# Settings live in /etc/paper_trader.env (not in git): AWS credentials, PAPER_S3_BUCKET, optional PAPER_S3_PREFIX,
+# COLLECTOR_ALERT_WEBHOOK.
+[Unit]
+Description=Polymarket weather paper trader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/polymarket_trading
+EnvironmentFile=/etc/paper_trader.env
+ExecStart=/home/ubuntu/polymarket_trading/.venv/bin/python -m weather_edge.paper_trader --out /home/ubuntu/paper --forecasts /home/ubuntu/forecasts.duckdb --stations EGLC KLGA
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
