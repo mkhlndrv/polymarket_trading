@@ -1,6 +1,6 @@
 # Phase 6: city ranking
 
-Command: `python -m weather_edge.model --stations EGLC KLGA KDAL RKSI CYYZ KATL KSEA SAEZ --decision-hours 12` (run as four processes of two stations, outputs concatenated). Calibrated t EMOS on ECMWF, GFS and GEFS at all four cycles; decision noon local; holdout from 2026-08-01 untouched.
+Command: `python -m weather_edge model --stations EGLC KLGA KDAL RKSI CYYZ KATL KSEA SAEZ --decision-hours 12`, run as four processes of two stations with the outputs joined. Calibrated t EMOS on ECMWF, GFS and GEFS at all four cycles, decision at noon local, holdout from 2026-08-01 untouched.
 
 ## Ranking (market minus model Brier on disagreement buckets, positive = model wins; 90% day bootstrap)
 
@@ -15,11 +15,11 @@ Command: `python -m weather_edge.model --stations EGLC KLGA KDAL RKSI CYYZ KATL 
 | RKSI | Seoul | 234 | +0.044 (-0.042 to +0.100), 39 buckets only | -0.007 (-0.025 to +0.010) | -0.062 | -0.047 |
 | KDAL | Dallas | 232 | -0.014 (-0.031 to +0.001) | -0.023 (-0.038 to -0.009) | -0.055 | -0.037 |
 
-- The pattern is the same everywhere: two days out the model is at least as good as the market, one day out the market is level or slightly ahead, on the day the market is far ahead (0.03 to 0.07 Brier) and the running-maximum model closes a third of the gap.
-- Only London and NYC pass the section 10 Brier criterion at lead 3. The six cities listed since December 2025 have about 165 lead-3 days each and intervals that include zero; five of six point estimates are positive, Dallas is negative. Seoul has almost no quotes two days out.
-- The market is sharper in the newer cities (lead 1 Brier 0.057 to 0.065 against 0.073 in London and NYC), which likely reflects a more competitive market in 2026 rather than easier weather.
-- London has the strongest lead-3 signal and the deepest history, so the fill-calibrated backtest (T13 logic) runs on London next (T16). NYC's lead-3 signal did not survive conservative fills (T13).
-- Gate: two cities pass on probability, none yet on PnL. The project continues on London and on the same-day inputs (T15) before any live decision.
+- The shape is the same in every city. Two days out the model is at least level with the market. One day out the market is level or slightly ahead. On the day the market is far ahead, by 0.03 to 0.07 Brier, and the running-maximum model closes about a third of that gap.
+- Only London and New York pass the Brier criterion two days out. The six cities listed since December 2025 have about 165 days each with a quote two days out, and every interval includes zero. Five of the six point estimates are positive, Dallas is negative. Seoul has almost no quotes two days out.
+- The market is sharper in the newer cities: same-day Brier 0.057 to 0.065, against 0.073 in London and New York. More likely a more competitive market in 2026 than easier weather.
+- London has the strongest two-days-out signal and the longest history, so the tape backtest runs on London next (T16). New York's signal did not survive conservative fills (T13).
+- Gate: two cities pass on probability, none yet on money. The project goes on with London and with the same-day inputs (T15) before any live decision.
 
 ## Method (from weather_edge/model.py)
 

@@ -11,9 +11,9 @@ for d in DELTAS; -30 is a control window before publication. Per station, model,
 regression slope of market move on model move, correlation, and the mean absolute market move when
 the model moved by at least one unit.
 
-## Findings (T19, H17): the market does not react to run releases at all
+## Findings (T19, H17): the market does not react to run releases
 
-Command: `python -m weather_edge.timing`. London 8,025 run publications on 552 days, NYC 8,331 on 549 days, 2025-01 to 2026-07 (holdout untouched). Model move = change of the run's daily maximum against the previous run of the same model (median 0.36 F in London, 0.56 F in NYC; 1,385 and 2,467 runs moved by a full degree or more). Market move = change of the market-implied expected high from one hour before publication.
+Command: `python -m weather_edge timing`. London: 8,025 run publications on 552 days. New York: 8,331 on 549 days. 2025-01 to 2026-07, holdout untouched. Model move = the run's daily maximum minus the previous run's of the same model (median 0.36 °F in London, 0.56 °F in New York; 1,385 and 2,467 runs moved by a full degree or more). Market move = the change in the market-implied expected high from one hour before publication.
 
 | horizon | slope of market move on model move at +15 min | at +240 min | correlation at +240 min | mean market move when the model moved 1 F or more, +240 min | same when it moved less |
 |---|---|---|---|---|---|
@@ -22,10 +22,10 @@ Command: `python -m weather_edge.timing`. London 8,025 run publications on 552 d
 | ECMWF, same day | 0.01 to 0.04 | 0.10 | 0.12 to 0.15 | 0.46 to 0.57 F | 0.35 to 0.52 F |
 | GFS, all horizons | 0.00 | 0.01 to 0.04 | 0.03 to 0.10 | | |
 
-- A run that moves its forecast high by one degree moves the market's implied high by about 0.04 F four hours later and by nothing measurable in the first 15 minutes. The sign of the market's move agrees with the model's in 44 to 60% of cases, a coin flip. The control window 30 minutes before publication shows the same nothing, so there is no early leak to detect either.
-- The market drifts by 0.25 to 0.5 F over four hours whether or not the newest run changed, so the information that moves prices is not the deterministic ECMWF or GFS daily maximum as it becomes public. Either the market reads other guidance (NWS forecasts, blended products, its own models) or it reacts to the runs only through slow re-quoting that this measure cannot separate from noise.
-- H17 is rejected: there is no lag to exploit, because there is no reaction. A fast quoter keyed to model publication times would be trading against noise.
-- Method caveats: the implied high is a probability-weighted bucket centre from as-of prices, which is noisy where books are thin; two-days-before windows have fewer runs with quotes. Neither would hide a slope of 0.5 if it existed.
+- A run that moves its forecast high by one degree moves the market's implied high by about 0.04 °F four hours later, and by nothing measurable in the first 15 minutes. The sign of the market's move agrees with the model's 44 to 60% of the time, a coin flip. The control window 30 minutes before publication shows the same nothing, so there is no early leak either.
+- The market drifts by 0.25 to 0.5 °F over four hours whether or not the newest run changed anything. So what moves prices is not the ECMWF or GFS daily maximum as it becomes public. Either the market reads other guidance (NWS forecasts, blended products, its own models) or it takes the runs in through slow re-quoting that this measure cannot tell from noise.
+- H17 is rejected. There is no lag to exploit because there is no reaction. A fast quoter keyed to publication times would be trading against noise.
+- Caveats. The implied high is a probability-weighted bucket centre from as-of prices, which is noisy where books are thin, and the two-days-before windows have fewer runs with quotes. Neither would hide a slope of 0.5 if it existed.
 
 ## EGLC
 

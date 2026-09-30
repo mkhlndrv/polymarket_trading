@@ -14,35 +14,35 @@ Fills from the dataset fills (table trades, complete through 2026-04, about 80% 
 Maker fee zero, rebates ignored. PnL per share = outcome - price for YES, (1 - outcome) - price for NO.
 Holdout from 2026-08-01 excluded (the tape ends 2026-07-20 anyway).
 
-## Findings (NYC KLGA, 2025-02 to 2026-07-20, calibrated t EMOS at lead 3, 5 shares per order)
+## Findings, New York (KLGA, 2025-02 to 2026-07-20, calibrated t EMOS two days out, 5 shares per order)
 
-Command: `python -m weather_edge.backtest --stations KLGA --decision-hours 6 12`. The tables below are from the calibrated model (out-of-sample scale inflation). The first run, before the calibration step, is in PLAN.md T13.
+Command: `python -m weather_edge backtest --stations KLGA --decision-hours 6 12`. The tables below are from the calibrated model. The first run, before the calibration step, is T13 in the research log.
 
 | decision (two days before) | orders | through fills | shares | PnL | c per share | PnL per order, day bootstrap 90% | with 50% haircut on winning fills |
 |---|---|---|---|---|---|---|---|
 | 06:00 local | 748 | 272 | 1,312 | +56 USD | +4.3 | -0.00 to +0.44 USD | -8.6c per share |
 | 12:00 local | 1,279 | 564 | 2,698 | +25 USD | +0.9 | -0.11 to +0.20 USD | -11.6c per share |
 
-- The uncalibrated model gave +8.3c and +2.5c per share on the same orders logic; calibrating the spread (which the section 10 Brier test needs) widens the tails, adds a few orders and lowers the realized edge. Neither version has a bootstrap interval that excludes zero at conservative fills.
-- The model expects about 20c per share on the orders that fill and realizes 4c or less: most of the paper edge is adverse selection, which the tape captures without any haircut. The 50% haircut on winning fills on top of that turns everything clearly negative; for through fills it double counts (a print beyond the level proves the fill), for touch fills it stands in for queue position.
-- The NO side carries what there is (bids on NO when the market prices a bucket 10c above the model): 681 orders at 06:00, 74% of fills win, +4.8c per share. The YES side (bids on underpriced buckets) fills often and wins 14 to 21% of the time: +2.4c at 06:00, -0.6c at noon.
-- Capacity is not the constraint: 153,000 to 267,000 shares printed beyond the order levels over the period, against 1,300 to 2,700 shares filled at 5 per order. The constraint is that the edge per share is small and unstable across months.
-- Verdict against section 10: Brier criterion passed (T10, T12), PnL criterion not passed at conservative fills. The two-days-out edge is real in probability terms but not tradeable on its own with maker orders at 10c of edge. It becomes interesting only if the same-day or one-day-ahead model improves (H16) or the signal is stronger in other cities (T14).
+- The uncalibrated model made +8.3c and +2.5c a share on the same order logic. Calibrating the spread, which the Brier test needs, widens the tails, adds a few orders and lowers the realised edge. Neither version has an interval that excludes zero at conservative fills.
+- The model expects about 20c a share on the orders that fill and gets 4c or less. Most of the paper edge is adverse selection, and the tape shows it without any haircut. The 50% haircut on winning fills on top of that turns everything clearly negative. For through fills it double counts, since a print beyond the level proves the fill. For touch fills it stands in for queue position.
+- The NO side carries what there is: bids on NO when the market prices a bucket 10c above the model. 681 orders at 06:00, 74% of fills win, +4.8c a share. The YES side, bids on underpriced buckets, fills often and wins 14 to 21% of the time: +2.4c at 06:00 and −0.6c at noon.
+- Capacity is not the problem. 153,000 to 267,000 shares printed beyond the order levels over the period, against 1,300 to 2,700 filled at 5 per order. The problem is that the edge per share is small and moves around from month to month.
+- Verdict: Brier criterion passed (T10, T12), money criterion not passed at conservative fills. The two-days-out edge is real in probability and not tradeable on its own with maker orders at 10c of edge. It only gets interesting if the same-day or one-day-out model improves (H16) or the signal is stronger in another city (T14).
 
-## Findings, London (EGLC, 2025-02 to 2026-07-20, calibrated t EMOS at lead 3, 5 shares per order)
+## Findings, London (EGLC, 2025-02 to 2026-07-20, calibrated t EMOS two days out, 5 shares per order)
 
-Command: `python -m weather_edge.backtest --stations EGLC --decision-hours 6 12` (T16).
+Command: `python -m weather_edge backtest --stations EGLC --decision-hours 6 12` (T16).
 
 | decision (two days before) | orders | through fills | shares | PnL | c per share | PnL per order, day bootstrap 90% | with 50% haircut on winning fills |
 |---|---|---|---|---|---|---|---|
 | 06:00 local | 383 | 164 | 799 | +25 USD | +3.2 | -0.14 to +0.44 USD | -7.9c per share |
 | 12:00 local | 1,041 | 412 | 1,993 | **+110 USD** | **+5.5** | **+0.08 to +0.45 USD** | -7.1c per share |
 
-- London at noon is the first case with a bootstrap interval that excludes zero on through fills: 15 of 18 months positive, the three negative months lose 1.5 to 5.4 USD, and the gain is not front-loaded (2026-01 +36 USD, 2025-02 +24 USD, all of 2026-05 to 07 positive). Touch fills agree (+5.7c). The NO side does the work again (+6.7c per share, 71% of fills win); the YES side is +2.1c with an interval around zero.
-- The model expects 18.6c per filled share and realizes 5.5c, the same 70% adverse selection as NYC. With the 50% haircut on winning fills on top the result is negative, as everywhere.
-- London markets are quoted earlier than NYC (1,041 noon orders against 1,279 for NYC on a similar number of days) and the 06:00 decision has fewer orders and no clear edge.
-- Capacity: 195,000 shares printed beyond the levels at noon against 1,993 filled at 5 per order; about 470 shares per filled order, so size could grow tenfold before the through rule stops describing reality.
-- Verdict against section 10: Brier criterion passed (T14), PnL positive on through fills at noon (interval excludes zero), negative under the haircut. Marginal pass. The candidate for paper trading is London, noon two days before, NO side, at 10c of edge; it must show the same 5c per share in Phase 9 against live books before any live order.
+- London at noon is the first case with an interval above zero on through fills. 15 of 18 months are positive, the three losing months lose 1.5 to 5.4 USD, and the gain is not front-loaded: +36 USD in 2026-01, +24 USD in 2025-02, and May to July 2026 all positive. Touch fills agree (+5.7c). The NO side does the work again, +6.7c a share with 71% of fills winning. The YES side is +2.1c with an interval around zero.
+- The model expects 18.6c per filled share and gets 5.5c, the same 70% adverse selection as New York. With the haircut on top the result is negative, as everywhere.
+- London markets get quotes earlier than New York's (1,041 noon orders against 1,279 on a similar number of days). The 06:00 decision has fewer orders and no clear edge.
+- Capacity: 195,000 shares printed beyond the levels at noon against 1,993 filled at 5 per order. About 470 shares per filled order, so size could grow tenfold before the through rule stops describing reality.
+- Verdict: Brier criterion passed (T14). PnL positive on through fills at noon with an interval above zero, negative under the haircut. A marginal pass. The candidate for paper trading is London, noon two days before, NO side, at 10c of edge. It has to show the same 5c a share against live books before any live order.
 
 ## KLGA, decision 06:00 local two days before
 

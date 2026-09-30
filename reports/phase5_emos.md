@@ -25,9 +25,9 @@ the decision time, and the market-minus-model Brier on disagreement buckets with
 Bucket probabilities integrate the predictive distribution over half-integer edges in the market's unit.
 Holdout from 2026-08-01 excluded.
 
-## Findings (NYC KLGA, 2025-01-22 to 2026-07-31; holdout from 2026-08-01 untouched)
+## Findings (New York, 2025-01-22 to 2026-07-31; holdout from 2026-08-01 untouched)
 
-Command: `python -m weather_edge.model --stations KLGA --decision-hours 6 8 10 12` (calibrated t EMOS). Inputs: ECMWF IFS, GFS, GEFS mean and spread at 00/06/12/18Z, 3-hourly steps, publication times from the mirrors; 577 feature days; 10,515 to 11,493 market buckets per decision hour. The first run with a plain normal EMOS is recorded in PLAN.md T10; this one adds a Student t fit and an out-of-sample scale calibration (T12).
+Command: `python -m weather_edge model --stations KLGA --decision-hours 6 8 10 12`. Inputs: ECMWF, GFS, GEFS mean and spread at all four cycles, 3-hourly steps, publication times from the mirrors. 577 feature days and 10,515 to 11,493 market buckets per decision hour. The first run, with a plain normal EMOS, is T10 in the research log. This one adds the Student t fit and the out-of-sample scale calibration (T12).
 
 | decision | lead 3 (two days before) | lead 2 (day before) | lead 1 EMOS | lead 1 with observations |
 |---|---|---|---|---|
@@ -36,13 +36,13 @@ Command: `python -m weather_edge.model --stations KLGA --decision-hours 6 8 10 1
 | 10:00 | **+0.017 (0.006 to 0.028)** | -0.018 | -0.054 | -0.045 |
 | 12:00 | **+0.021 (0.011 to 0.031)**, 1,332 buckets on 408 days | -0.018 (-0.027 to -0.009) | -0.062 | -0.041 |
 
-Market minus model Brier on disagreement buckets (|p_model - p_market| >= 0.10), positive means the model wins, 90% day bootstrap in brackets.
+Market minus model Brier on the buckets where the two disagree by 10c or more. Positive means the model did better. 90% day-bootstrap intervals in brackets.
 
-- Two days ahead the model beats the market at every decision hour, and more the earlier the decision, where fewer markets carry quotes (markets appear about 42 h before the day, see PLAN.md section 12). One day ahead the market is slightly ahead. On the day the market wins by 0.05 to 0.06 against forecasts alone and by 0.04 against the model that also knows the running maximum and the last METAR.
-- Observations help the same-day model (lead 1 CRPS 0.81 C to 0.73 C at 06:00 and to 0.61 C at noon) but not enough: the market's Brier is 0.071 to 0.075 at every hour from 06:00, so the market at 06:00 already knows more than global-model forecasts plus the morning observations.
-- Calibration: the plain normal EMOS covered 81 to 83% with its nominal 90% interval (U-shaped PIT). Fitting a Student t by CRPS did not fix it (nu runs to its upper bound, the in-sample fit is simply overconfident). Scaling the spread by the root mean square of the last 90 out-of-sample standardized errors gives 88 to 92% coverage and a flat PIT at a cost of about 0.01 C in CRPS; the disagreement scores moved by less than 0.01.
-- CRPS (C) at noon, lead 1/2/3: EMOS 0.79/0.93/1.05, raw multi-model 0.95/1.07/1.17, 30-day climatology 3.1/3.2/3.3. GEFS spread and the 06/18Z cycles add little over ECMWF and GFS at 00/12Z (T10 vs Phase 4).
-- Reading: for the same day the forecast inputs are the bottleneck, not the conditioning. The lead-3 signal is the one worth trading if fills allow (T13, T16). Higher-resolution guidance does not change it: with the NBM 12-hour daytime maximum and its spread as extra inputs (T15, 14 CONUS stations, four cycles) every score at every hour is within 0.002 Brier and 0.01 C CRPS of the run without it, and the fitted slopes put no weight on NBM once ECMWF, GFS and GEFS are in.
+- Two days out the model beats the market at every decision hour. The earlier the decision, the bigger the gap, and the fewer markets have a quote yet (markets get listed about 42 hours before the day, research log section 12). One day out the market is slightly ahead. On the day the market wins by 0.05 to 0.06, and by 0.04 against the version that also reads the running maximum and the last METAR.
+- The observations help the same-day model, but not enough. Its CRPS goes from 0.81 °C to 0.73 °C at 06:00 and to 0.61 °C at noon. The market's Brier is 0.071 to 0.075 at every hour from 06:00, so at 06:00 the market already knows more than the global runs plus the morning's reports.
+- Calibration. The plain normal EMOS covered 81 to 83% of days with its 90% interval and its PIT histogram was U-shaped. A Student t did not fix that: nu ran to its upper bound, the fit is simply too sure of itself in sample. Scaling the spread by the RMS of the last 90 out-of-sample errors gives 88 to 92% coverage and a flat PIT. It costs about 0.01 °C of CRPS and moves the disagreement scores by less than 0.01.
+- CRPS at noon, leads 1/2/3: EMOS 0.79/0.93/1.05 °C, the raw multi-model mean 0.95/1.07/1.17, 30-day climatology 3.1/3.2/3.3. The GEFS spread and the 06Z and 18Z cycles add little over ECMWF and GFS at 00Z and 12Z (T10 against Phase 4).
+- What this says: on the day, the forecast inputs are the limit, not how they are combined. The two-days-out signal is the one worth taking to the backtest (T13, T16). Higher-resolution guidance does not change it. With NBM's 12-hour daytime maximum and spread as extra inputs (T15, 14 US stations, four cycles) every score at every hour is within 0.002 Brier and 0.01 °C CRPS of the run without it, and the fitted slopes give NBM no weight once ECMWF, GFS and GEFS are in.
 
 ## KLGA, decision 06:00 local
 

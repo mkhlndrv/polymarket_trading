@@ -1,6 +1,6 @@
 # Phase 1: market-side checks
 
-Tests T1 to T5 of PLAN.md section 9. Prices are CLOB history sampled at h hours before the local midnight that ends the event day (as-of, never after). Outcome is the resolved bucket. Profit figures are gross of fees.
+Tests T1 to T5 of the research log. Prices are CLOB history sampled at h hours before the local midnight that ends the event day (as-of, never after). Outcome is the resolved bucket. Profit figures are gross of fees.
 
 ## Coverage
 

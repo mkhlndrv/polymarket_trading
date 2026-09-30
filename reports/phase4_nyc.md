@@ -15,7 +15,7 @@ Labels: the rebuilt displayed high (T-group tenths transform, table truth) and t
 Models (walk-forward, trailing windows only): climatology (last 30 days of labels), raw multi-model
 (mean and spread of the models' daily maxima), EMOS-lite (linear fit of the label on the model mean
 over the last 60 days, residual spread). Bucket probabilities integrate a normal over half-integers.
-Holdout: days from 2026-08-01 are excluded from everything here (PLAN.md section 8).
+Holdout: days from 2026-08-01 are excluded from everything here (docs/research-log.md section 8).
 Backtest: maker-only, 5 shares (minimum order), bid 1c under the market price when the model's
 probability exceeds the market's by the edge, fill only if the later price touched the bid, and a
 50% fill haircut when the bucket won (fills are likelier when the model is wrong). No fees for makers,

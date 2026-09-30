@@ -1,4 +1,4 @@
-# Polymarket Weather Edge: Project Plan and Context
+# Research log
 
 My working document for this project: what was decided, what was verified, every hypothesis and test run, in the order it happened. Facts marked "verify" may have changed since; check the live source before relying on them.
 

@@ -1,17 +1,17 @@
 # Phase 5 holdout: the one-shot test (T17)
 
-Command: `python -m weather_edge.model --stations EGLC --decision-hours 12 --leads 3 --holdout` and the same for KLGA, run once on 2026-09-30. Configuration fixed beforehand: calibrated t EMOS, lead 3, decision noon local two days before the day. Scored only on days from 2026-08-01 (59 resolved days per city, prices to 2026-09-29); training walk-forward on the days before each decision, as everywhere else. The trade tape ends 2026-07-20, so the fill backtest could not run on the holdout; this is the Brier test of section 10.
+Command: `python -m weather_edge model --stations EGLC --decision-hours 12 --leads 3 --holdout`, and the same for KLGA. Run once, on 2026-09-30. The configuration was fixed before: calibrated t EMOS, two days out, decision at noon local. Scored only on days from 2026-08-01 (59 resolved days per city, prices to 2026-09-29). The walk-forward still trains on the days before each decision, as everywhere else. The trade tape ends on 2026-07-20, so the fill backtest could not run on the holdout. This is the Brier test of section 10 of the research log.
 
 | station | holdout days with quotes | buckets | disagreement buckets | market Brier | model Brier | market minus model on disagreement (90% day bootstrap) |
 |---|---|---|---|---|---|---|
 | London EGLC | 57 | 627 | 69 | 0.0670 | 0.0666 | -0.007 (-0.036 to +0.021) |
 | NYC KLGA | 29 | 319 | 52 | 0.0624 | 0.0697 | -0.038 (-0.078 to +0.005) |
 
-- Before the holdout the same configuration beat the market two days out by +0.042 (London) and +0.021 (NYC) with intervals well above zero. On the holdout London is level and NYC is behind. The section 10 criterion "it holds on the final holdout" is not met.
-- The market itself is much sharper two days out than it was: Brier 0.067 and 0.062 against 0.102 and 0.108 over 2025-01 to 2026-07, and only 1.2 disagreement buckets per day against about 3 before. The model's own quality is unchanged (London lead-3 CRPS 0.54 C on the holdout against 0.74 C in-sample, NYC 0.75 against 1.05, both better because August and September are easy months). The edge went away because the market caught up, not because the model broke.
-- NYC has only 29 days with quotes at noon two days before, because its markets were listed just 27 h ahead in August (PLAN.md section 12); 44 h again since September.
-- KLGA's holdout run had the NBM inputs in its source list (the production forecast DB now carries them). T15 showed NBM moves every score by less than 0.002, so this does not change the reading, but it is a deviation from the registered configuration and is recorded here.
-- Verdict: no tradeable edge demonstrated. The two-days-out signal that survived Phases 5 to 7 in-sample does not hold on unseen 2026 data. Paper trading it would be a zero-stakes check, not a step toward live capital.
+- Before the holdout the same configuration beat the market two days out by +0.042 in London and +0.021 in New York, with intervals well above zero. On the holdout London is level and New York is behind. The criterion "it holds on the holdout" is not met.
+- The market got sharper. Two days out its Brier is 0.067 and 0.062, against 0.102 and 0.108 over 2025-01 to 2026-07, and it disagrees with the model on 1.2 buckets a day instead of about 3. The model itself did not get worse: London's lead-3 CRPS is 0.54 °C on the holdout against 0.74 °C in sample, New York's 0.75 against 1.05. Both are better because August and September are easy months. The edge went away because the market caught up, not because the model broke.
+- New York has only 29 holdout days with a quote at noon two days before, because its markets were listed just 27 hours ahead in August (research log section 12). Since September it is 44 hours again.
+- The New York run had the NBM inputs in its source list, because the forecast database now carries them. T15 showed NBM moves every score by less than 0.002, so this does not change the reading, but it is a deviation from the registered configuration and I record it here.
+- Verdict: no tradeable edge. The two-days-out signal that survived Phases 5 to 7 in sample does not hold on unseen 2026 data. Paper trading it would be a zero-stakes check, not a step toward live money.
 
 ## Method (from weather_edge/model.py)
 
